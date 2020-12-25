@@ -62,18 +62,16 @@ public class ScreenRecordService extends Service {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.i(TAG, "onCreate()");
+        createNotificationChannel();
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         Log.i(TAG, "onBind()");
-        mWidth = intent.getIntExtra("width", 720);
-        mHeight = intent.getIntExtra("height", 1280);
-        resultCode = intent.getIntExtra("code", Activity.RESULT_OK);
-        recordIntent = intent.getParcelableExtra("data");
-
-        mMediaProjection = createMediaProjection();
-        mMediaRecorder = createMediaRecorder();
-        mVirtualDisplay = createVirtualDisplay();
-
-        createNotificationChannel();
+        startRecord(intent);
         Log.i(TAG, "onBind() width: " + mWidth + " height: " + mHeight);
 
         // TODO: Return the communication channel to the service.
@@ -83,6 +81,13 @@ public class ScreenRecordService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand()");
+        startRecord(intent);
+
+        Log.i(TAG, "onStartCommand() width: " + mWidth + " height: " + mHeight);
+        return Service.START_NOT_STICKY;
+    }
+
+    private void startRecord(Intent intent) {
         mWidth = intent.getIntExtra("width", 720);
         mHeight = intent.getIntExtra("height", 1280);
         resultCode = intent.getIntExtra("code", Activity.RESULT_OK);
@@ -91,11 +96,7 @@ public class ScreenRecordService extends Service {
         mMediaProjection = createMediaProjection();
         mMediaRecorder = createMediaRecorder();
         mVirtualDisplay = createVirtualDisplay();
-
-        createNotificationChannel();
-
-        Log.i(TAG, "onStartCommand() width: " + mWidth + " height: " + mHeight);
-        return Service.START_NOT_STICKY;
+        mMediaRecorder.start();
     }
 
     private void createNotificationChannel() {
@@ -152,7 +153,7 @@ public class ScreenRecordService extends Service {
         mediaRecorder.setVideoSize(mWidth, mHeight);
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mediaRecorder.setVideoEncodingBitRate(2000);
-        mediaRecorder.setVideoFrameRate(10);
+        mediaRecorder.setVideoFrameRate(60);
 
         try {
             mediaRecorder.prepare();

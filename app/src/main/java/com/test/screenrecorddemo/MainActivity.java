@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btn_op;
     private boolean isStart = false;
+    private boolean bindService = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,10 +90,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopScreenRecord() {
-//        Intent intent = new Intent(this, ScreenRecordService.class);
-//        stopService(intent);
-
-        unbindService(connection);
+        if (!bindService) {
+            Intent intent = new Intent(this, ScreenRecordService.class);
+            stopService(intent);
+        } else {
+            if (connection != null) {
+                unbindService(connection);
+            }
+        }
     }
 
     @Override
@@ -110,8 +116,12 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("code", resultCode);
             intent.putExtra("data", data);
 
-//            startService(intent);
-            bindService(intent, connection, BIND_AUTO_CREATE);
+            if (!bindService) {
+                startService(intent);
+//                startForegroundService(intent);
+            } else {
+                bindService(intent, connection, BIND_AUTO_CREATE);
+            }
         } else {
             isStart = false;
         }
@@ -143,4 +153,36 @@ public class MainActivity extends AppCompatActivity {
 
         }
     };
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            startActivity(intent);
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.i(TAG, "onPause()");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i(TAG, "onResume()");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG,"onDestory()");
+
+        stopScreenRecord();
+    }
 }

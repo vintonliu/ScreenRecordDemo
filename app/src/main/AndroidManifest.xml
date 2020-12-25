@@ -14,10 +14,10 @@
         <service
             android:name=".ScreenRecordService"
             android:foregroundServiceType="mediaProjection"
-            android:enabled="true"
-            android:exported="true" />
+            android:enabled="true" />
 
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity"
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
