@@ -1,10 +1,5 @@
 package com.test.screenrecorddemo;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.app.Activity;
 import android.content.ComponentName;
@@ -12,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -23,6 +19,12 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
+
 public class MainActivity extends AppCompatActivity {
     private final String TAG = getClass().getSimpleName();
     private static final int NORMAL_PERMISSION_REQUEST_CODE = 1000;
@@ -30,13 +32,16 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btn_op;
     private boolean isStart = false;
-    private boolean bindService = true;
+    // if bindService set true, save screen data to mp4 by MediaRecorder,
+    // else extract screen data to yuv420 file
+    private boolean bindService = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        requestNormalPermissions();
         btn_op = (Button)findViewById(R.id.btn_op);
     }
 
@@ -91,7 +96,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopScreenRecord() {
         if (!bindService) {
-            Intent intent = new Intent(this, ScreenRecordService.class);
+            ScreenCapturer.instance().stopCapture();
+            ScreenCapturer.instance().dispose();
+            Intent intent = new Intent(this, ScreenCapturerService.class);
             stopService(intent);
         } else {
             if (connection != null) {
@@ -110,16 +117,26 @@ public class MainActivity extends AppCompatActivity {
 
         if (resultCode == Activity.RESULT_OK) {
             DisplayMetrics displayMetrics = getDisplayMetrics();
-            Intent intent = new Intent(this, ScreenRecordService.class);
-            intent.putExtra("width", displayMetrics.widthPixels);
-            intent.putExtra("height", displayMetrics.heightPixels);
-            intent.putExtra("code", resultCode);
-            intent.putExtra("data", data);
 
             if (!bindService) {
+                Intent intent = new Intent(this, ScreenCapturerService.class);
                 startService(intent);
-//                startForegroundService(intent);
+                ScreenCapturer.instance().initialize(getApplicationContext(), data, new MediaProjection.Callback() {
+                    @Override
+                    public void onStop() {
+                        super.onStop();
+                        Log.i(TAG, "Screen Share has stopped.");
+                        Toast.makeText(getApplicationContext(), R.string.share_stop, Toast.LENGTH_LONG).show();
+                    }
+                });
+                ScreenCapturer.instance().startCapture(displayMetrics.widthPixels, displayMetrics.heightPixels);
             } else {
+                Intent intent = new Intent(this, ScreenRecordService.class);
+                intent.putExtra("width", displayMetrics.widthPixels);
+                intent.putExtra("height", displayMetrics.heightPixels);
+                intent.putExtra("code", resultCode);
+                intent.putExtra("data", data);
+
                 bindService(intent, connection, BIND_AUTO_CREATE);
             }
         } else {

@@ -3,4 +3,5 @@
     <string name="op_start">Start</string>
     <string name="op_stop">Stop</string>
     <string name="screen_record_running">Screen record running.</string>
+    <string name="share_stop">Screen Share has stopped.</string>
 </resources>

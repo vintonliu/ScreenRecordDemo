@@ -1,2 +1,3 @@
+include ':mp'
 include ':app'
 rootProject.name = "ScreenRecordDemo"
