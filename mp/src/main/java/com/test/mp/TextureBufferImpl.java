@@ -134,7 +134,7 @@ public class TextureBufferImpl implements VideoFrame.TextureBuffer {
   }
 
   private TextureBufferImpl applyTransformMatrix(Matrix transformMatrix, int unscaledWidth,
-                                                                         int unscaledHeight, int scaledWidth, int scaledHeight) {
+                                                 int unscaledHeight, int scaledWidth, int scaledHeight) {
     final Matrix newMatrix = new Matrix(this.transformMatrix);
     newMatrix.preConcat(transformMatrix);
     return new TextureBufferImpl(unscaledWidth, unscaledHeight, scaledWidth, scaledHeight, type, id,

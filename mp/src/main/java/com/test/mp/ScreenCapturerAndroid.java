@@ -51,8 +51,7 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
 
   private int width;
   private int height;
-  @Nullable
-  private VirtualDisplay virtualDisplay;
+  @Nullable private VirtualDisplay virtualDisplay;
   @Nullable private SurfaceTextureHelper surfaceTextureHelper;
   @Nullable private CapturerObserver capturerObserver;
   private long numCapturedFrames;
