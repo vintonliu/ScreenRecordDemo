@@ -287,7 +287,6 @@ public class SurfaceTextureHelper {
       throw new IllegalStateException("Wrong thread.");
     }
     if (isQuitting || !hasPendingTexture || isTextureInUse || listener == null) {
-      Logging.w(TAG, "tryDeliverTextureFrame isTextureInUse: " + isTextureInUse);
       return;
     }
     if (textureWidth == 0 || textureHeight == 0) {
@@ -298,8 +297,6 @@ public class SurfaceTextureHelper {
     }
     isTextureInUse = true;
     hasPendingTexture = false;
-
-    Logging.d(TAG, "tryDeliverTextureFrame ..");
 
     // 调用 updateTexImage() 将数据更新到 OpenGL ES 纹理对象
     updateTexImage();

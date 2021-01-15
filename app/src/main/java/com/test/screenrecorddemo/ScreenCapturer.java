@@ -20,15 +20,41 @@ import com.test.mp.SurfaceTextureHelper;
 import com.test.mp.VideoCapturer;
 import com.test.mp.VideoFrame;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ScreenCapturer implements com.test.mp.CapturerObserver {
     private static final String TAG = "ScreenCapturer";
+
+    interface Events {
+        /**
+         * Notify if the capturer have been started successfully or not.
+         */
+        void onCapturerStarted(boolean success);
+
+        /**
+         * Notify that the capturer has been stopped.
+         */
+        void onCapturerStopped();
+    }
+
+    private final Events dummyEvents = new Events() {
+        @Override
+        public void onCapturerStarted(boolean success) {
+            Log.i(TAG, "<Dummy Events> capturer start " + (success ? "success" : "failed"));
+        }
+
+        @Override
+        public void onCapturerStopped() {
+            Log.i(TAG, "<Dummy Events> capturer stopped.");
+        }
+    };
 
     private static final ScreenCapturer ourInstance = new ScreenCapturer();
 
@@ -42,12 +68,14 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     private VideoCapturer videoCapturer = null;
     private SurfaceTextureHelper surfaceTextureHelper = null;
     private EglBase rootEglBase = null;
+    private Events events = null;
     private int captureWidth = 720;
     private int captureHeight = 1280;
     private int framerate = 10;
     private boolean isSaveFile = true;
     private FileOutputStream outputStream = null;
     private boolean isInitialized = false;
+    private boolean captureStarted = false;
 
     public static ScreenCapturer instance() {
         return ourInstance;
@@ -62,8 +90,9 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     }
 
     public boolean initialize(Context applicationContext,
-                           Intent mediaProjectionPermissionResultData,
-                           MediaProjection.Callback mediaProjectionCallback) {
+                            Intent mediaProjectionPermissionResultData,
+                            MediaProjection.Callback mediaProjectionCallback,
+                            @Nullable Events events) {
         Log.i(TAG, "ScreenCapturer.initialize().");
         if (checkInitialize()) {
             Log.i(TAG, "ScreenCapturer.inialize() already initialize.");
@@ -73,6 +102,12 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
         if (mediaProjectionPermissionResultData == null) {
             return false;
         }
+
+        if (events == null) {
+            events = dummyEvents;
+        }
+
+        this.events = events;
 
         ContextUtils.initialize(applicationContext);
 
@@ -109,12 +144,16 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     public boolean startCapture(int width, int height) {
         Log.i(TAG, "ScreenCapturer.startCapture() width: " + width + " height: " + height);
         if (!checkInitialize()) {
-            Log.i(TAG, "ScreenCapturer.startCapture() not initialized.");
+            Log.w(TAG, "ScreenCapturer.startCapture() not initialized.");
             return false;
         }
 
         if (videoCapturer == null) {
             return false;
+        }
+
+        if (captureStarted) {
+            return true;
         }
 
         captureWidth = width;
@@ -129,29 +168,30 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     public boolean stopCapture() {
         Log.i(TAG, "ScreenCapturer.stopCapture().");
         if (!checkInitialize()) {
-            Log.i(TAG, "ScreenCapturer.stopCapture() not initialized.");
+            Log.w(TAG, "ScreenCapturer.stopCapture() not initialized.");
             return false;
         }
 
-        if (videoCapturer == null) {
+        if (!captureStarted || videoCapturer == null) {
             return false;
         }
 
         executor.execute(() -> {
-            try {
-                outputStream.close();
-                outputStream = null;
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (isSaveFile) {
+                try {
+                    outputStream.close();
+                    outputStream = null;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             try {
                 videoCapturer.stopCapture();
             } catch (InterruptedException | RuntimeException e) {
-                Logging.e(TAG, e.toString());
+                Logging.e(TAG, "ScreenCapturer.stopCapture() exception: ", e);
             }
         });
-
 
         return true;
     }
@@ -159,7 +199,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     public void dispose() {
         Log.i(TAG, "ScreenCapturer.dispose().");
         if (!checkInitialize()) {
-            Log.i(TAG, "ScreenCapturer.dispose() not initialized.");
+            Log.w(TAG, "ScreenCapturer.dispose() not initialized.");
             return;
         }
 
@@ -201,7 +241,9 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
      */
     @Override
     public void onCapturerStarted(boolean success) {
-        Log.i(TAG, "ScreenCapturer.onCapturerStarted().");
+        Log.i(TAG, "ScreenCapturer.onCapturerStarted() " + (success ? "success " : "failed"));
+        captureStarted = success;
+        events.onCapturerStarted(success);
     }
 
     /**
@@ -210,6 +252,8 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     @Override
     public void onCapturerStopped() {
         Log.i(TAG, "ScreenCapturer.onCapturerStopped().");
+        captureStarted = false;
+        events.onCapturerStopped();
     }
 
     /**
@@ -219,13 +263,16 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
      */
     @Override
     public void onFrameCaptured(VideoFrame frame) {
-        Log.i(TAG, "ScreenCapturer.onFrameCaptured().");
+//        Log.i(TAG, "ScreenCapturer.onFrameCaptured().");
         if (!checkInitialize()) {
             return;
         }
 
         executor.execute(() -> {
+            long start = System.currentTimeMillis();
+
             VideoFrame.I420Buffer buffer = frame.getBuffer().toI420();
+            Log.d(TAG, "process frame to i420 took " + (System.currentTimeMillis() - start) + "ms");
 
             // We draw into a buffer laid out like
             //
@@ -245,34 +292,44 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
             int stride = buffer.getStrideY();
             int size = width * height * 3 / 2;
             int ySize = buffer.getStrideV() * buffer.getHeight();
-            byte[] data = new byte[size];
             int uvStride = buffer.getStrideU() / 2;
             int uvHeight = buffer.getHeight() / 2;
-            int uvSize = uvStride * uvHeight;
+            int uvSize = stride * uvHeight;
+            ByteArrayOutputStream os = new ByteArrayOutputStream(size);
 
             // Read Y
-            buffer.getDataY().get(data, buffer.getDataY().position(), buffer.getDataY().limit());
+            long start1 = System.currentTimeMillis();
+            os.write(buffer.getDataY().array(), buffer.getDataY().position(), buffer.getDataY().limit());
+            Log.d(TAG, "read Y took " + (System.currentTimeMillis() - start1) + "ms");
 
-            // Read U
-            for (int i = 0; i < uvHeight; i++) { // row
-                for (int j = 0; j < uvStride; j++) { // column
-                    byte u = buffer.getDataU().get(i * width + j);
-                    data[ySize + i * uvStride + j] = u;
-                }
-            }
+            start1 = System.currentTimeMillis();
+            ByteBuffer uvbuf = ByteBuffer.allocate(uvSize);
+            byte[] uv = new byte[uvSize];
+            byte[] u = new byte[uvSize/2];
+            byte[] v = new byte[uvSize/2];
 
-            // Read V
-            for (int i = 0; i < uvHeight; i++) { // row
-                for (int j = 0; j < uvStride; j++) { // column
-                    byte v = buffer.getDataV().get(i * width + j);
-                    data[ySize + uvSize + i * uvStride + j] = v;
-                }
+            // Read UV from direct buffer
+            System.arraycopy(buffer.getDataU().array(), ySize, uv, 0, uvSize);
+            uvbuf.put(uv);
+            uvbuf.flip();
+            for (int row = 0; row < uvHeight; row++) {
+//                uvbuf.position(row * width);
+//                Log.i(TAG, "U position: " + uvbuf.position() + " row: " + row);
+                // Read U
+                uvbuf.get(u, row * uvStride, uvStride);
+                // Read V
+                uvbuf.get(v, row * uvStride, uvStride);
             }
+            os.write(u, 0, u.length);
+            os.write(v, 0, v.length);
+            Log.d(TAG, "read UV took " + (System.currentTimeMillis() - start1) + "ms");
 
             if (isSaveFile && outputStream != null) {
+                start1 = System.currentTimeMillis();
                 try {
                     // Write to file
-                    outputStream.write(data);
+                    outputStream.write(os.toByteArray());
+                    Log.d(TAG, "write file took " + (System.currentTimeMillis() - start1) + "ms");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -280,6 +337,11 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
 
             if (surfaceTextureHelper != null) {
                 surfaceTextureHelper.returnTextureFrame();
+            }
+
+            long diff = System.currentTimeMillis() - start;
+            if (diff >= 50) {
+                Log.i(TAG, "process frame total took too long " + diff + "ms");
             }
         });
     }

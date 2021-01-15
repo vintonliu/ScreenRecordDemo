@@ -3,5 +3,7 @@
     <string name="op_start">Start</string>
     <string name="op_stop">Stop</string>
     <string name="screen_record_running">Screen record running.</string>
-    <string name="share_stop">Screen Share has stopped.</string>
+    <string name="screen_start_s">Screen share start success.</string>
+    <string name="screen_start_f">Screen share start failed.</string>
+    <string name="screen_stop">Screen Share has stopped.</string>
 </resources>

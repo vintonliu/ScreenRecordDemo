@@ -25,7 +25,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ScreenCapturer.Events {
     private final String TAG = getClass().getSimpleName();
     private static final int NORMAL_PERMISSION_REQUEST_CODE = 1000;
     private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1001;
@@ -121,14 +121,16 @@ public class MainActivity extends AppCompatActivity {
             if (!bindService) {
                 Intent intent = new Intent(this, ScreenCapturerService.class);
                 startService(intent);
+
                 ScreenCapturer.instance().initialize(getApplicationContext(), data, new MediaProjection.Callback() {
                     @Override
                     public void onStop() {
                         super.onStop();
                         Log.i(TAG, "Screen Share has stopped.");
-                        Toast.makeText(getApplicationContext(), R.string.share_stop, Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getApplicationContext(), R.string.screen_stop, Toast.LENGTH_LONG).show();
                     }
-                });
+                }, this);
+
                 ScreenCapturer.instance().startCapture(displayMetrics.widthPixels, displayMetrics.heightPixels);
             } else {
                 Intent intent = new Intent(this, ScreenRecordService.class);
@@ -170,6 +172,28 @@ public class MainActivity extends AppCompatActivity {
 
         }
     };
+
+    @Override
+    public void onCapturerStarted(boolean success) {
+        isStart = success;
+        runOnUiThread(() -> {
+            if (success) {
+                Toast.makeText(MainActivity.this, R.string.screen_start_s, Toast.LENGTH_LONG).show();
+            } else {
+                btn_op.setText(R.string.op_start);
+                Toast.makeText(MainActivity.this, R.string.screen_start_f, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    @Override
+    public void onCapturerStopped() {
+        isStart = false;
+        runOnUiThread(() -> {
+            btn_op.setText(R.string.op_start);
+            Toast.makeText(MainActivity.this, R.string.screen_stop, Toast.LENGTH_LONG).show();
+        });
+    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {

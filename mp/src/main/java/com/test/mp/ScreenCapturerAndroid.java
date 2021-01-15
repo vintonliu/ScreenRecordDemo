@@ -117,7 +117,7 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
       e.printStackTrace();
       Logging.e(TAG, "getMediaProjection failed.", e);
       if (capturerObserver != null) {
-        capturerObserver.onCapturerStopped();
+        capturerObserver.onCapturerStarted(false);
       }
       return;
     }
@@ -126,7 +126,14 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
     mediaProjection.registerCallback(mediaProjectionCallback, surfaceTextureHelper.getHandler());
 
     createVirtualDisplay();
-    capturerObserver.onCapturerStarted(true);
+    if (capturerObserver != null) {
+      if (virtualDisplay == null) {
+        capturerObserver.onCapturerStarted(false);
+        return;
+      } else {
+        capturerObserver.onCapturerStarted(true);
+      }
+    }
     surfaceTextureHelper.startListening(ScreenCapturerAndroid.this);
   }
 
