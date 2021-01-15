@@ -24,6 +24,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.test.mp.ScreenCapturer;
+
 
 public class MainActivity extends AppCompatActivity implements ScreenCapturer.Events {
     private final String TAG = getClass().getSimpleName();

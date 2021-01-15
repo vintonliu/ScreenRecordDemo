@@ -1,4 +1,4 @@
-package com.test.screenrecorddemo;
+package com.test.mp;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -12,14 +12,6 @@ import android.view.WindowManager;
 
 import androidx.annotation.Nullable;
 
-import com.test.mp.ContextUtils;
-import com.test.mp.EglBase;
-import com.test.mp.Logging;
-import com.test.mp.ScreenCapturerAndroid;
-import com.test.mp.SurfaceTextureHelper;
-import com.test.mp.VideoCapturer;
-import com.test.mp.VideoFrame;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,10 +21,10 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ScreenCapturer implements com.test.mp.CapturerObserver {
+public class ScreenCapturer implements CapturerObserver {
     private static final String TAG = "ScreenCapturer";
 
-    interface Events {
+    public interface Events {
         /**
          * Notify if the capturer have been started successfully or not.
          */
