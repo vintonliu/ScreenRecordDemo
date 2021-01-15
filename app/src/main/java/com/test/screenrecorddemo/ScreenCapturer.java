@@ -75,7 +75,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     private boolean isSaveFile = true;
     private FileOutputStream outputStream = null;
     private boolean isInitialized = false;
-    private boolean captureStarted = false;
+    private boolean isCaptureStarted = false;
 
     public static ScreenCapturer instance() {
         return ourInstance;
@@ -152,7 +152,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
             return false;
         }
 
-        if (captureStarted) {
+        if (isCaptureStarted) {
             return true;
         }
 
@@ -172,7 +172,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
             return false;
         }
 
-        if (!captureStarted || videoCapturer == null) {
+        if (!isCaptureStarted || videoCapturer == null) {
             return false;
         }
 
@@ -242,7 +242,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     @Override
     public void onCapturerStarted(boolean success) {
         Log.i(TAG, "ScreenCapturer.onCapturerStarted() " + (success ? "success " : "failed"));
-        captureStarted = success;
+        isCaptureStarted = success;
         events.onCapturerStarted(success);
     }
 
@@ -252,7 +252,7 @@ public class ScreenCapturer implements com.test.mp.CapturerObserver {
     @Override
     public void onCapturerStopped() {
         Log.i(TAG, "ScreenCapturer.onCapturerStopped().");
-        captureStarted = false;
+        isCaptureStarted = false;
         events.onCapturerStopped();
     }
 

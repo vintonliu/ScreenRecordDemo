@@ -43,6 +43,8 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
       DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC | DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
   // DPI for VirtualDisplay, does not seem to matter for us.
   private static final int VIRTUAL_DISPLAY_DPI = 400;
+  // Statistic frame rate per second
+  private static final int FRAME_STAT_PERIOD_MS = 1 * 1000; // 1s
 
   private final Intent mediaProjectionPermissionResultData;
   private final MediaProjection.Callback mediaProjectionCallback;
@@ -54,6 +56,7 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
   @Nullable private SurfaceTextureHelper surfaceTextureHelper;
   @Nullable private CapturerObserver capturerObserver;
   private long numCapturedFrames;
+  private long preNumCapturedFrames;
   @Nullable private MediaProjection mediaProjection;
   private boolean isDisposed = false;
   @Nullable private MediaProjectionManager mediaProjectionManager;
@@ -110,11 +113,12 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
     this.width = width;
     this.height = height;
 
+    numCapturedFrames = 0;
+    preNumCapturedFrames = 0;
     try {
       mediaProjection = mediaProjectionManager.getMediaProjection(
           Activity.RESULT_OK, mediaProjectionPermissionResultData);
     } catch (Exception e) {
-      e.printStackTrace();
       Logging.e(TAG, "getMediaProjection failed.", e);
       if (capturerObserver != null) {
         capturerObserver.onCapturerStarted(false);
@@ -135,6 +139,8 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
       }
     }
     surfaceTextureHelper.startListening(ScreenCapturerAndroid.this);
+    // Statistic frame rate
+    surfaceTextureHelper.getHandler().postDelayed(frameStatRun, FRAME_STAT_PERIOD_MS);
   }
 
   @Override
@@ -145,6 +151,7 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
     ThreadUtils.invokeAtFrontUninterruptibly(surfaceTextureHelper.getHandler(), new Runnable() {
       @Override
       public void run() {
+        surfaceTextureHelper.getHandler().removeCallbacks(frameStatRun);
         surfaceTextureHelper.stopListening();
         capturerObserver.onCapturerStopped();
 
@@ -226,4 +233,13 @@ public class ScreenCapturerAndroid implements VideoCapturer, VideoSink {
   public long getNumCapturedFrames() {
     return numCapturedFrames;
   }
+
+  private Runnable frameStatRun = new Runnable() {
+    @Override
+    public void run() {
+      Logging.d(TAG, "Screen capture frames num " + (numCapturedFrames - preNumCapturedFrames));
+      preNumCapturedFrames = numCapturedFrames;
+      surfaceTextureHelper.getHandler().postDelayed(this, FRAME_STAT_PERIOD_MS);
+    }
+  };
 }

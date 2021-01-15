@@ -217,7 +217,7 @@ public class YuvConverter {
     // Rows of U and V alternate in the buffer, so V data starts after the first row of U.
     final int vPos = uPos + stride / 2;
 
-    Logging.d(TAG, "YPos:" + yPos + "  (yPos + stride * height):" + (yPos + stride * frameHeight));
+//    Logging.d(TAG, "YPos:" + yPos + "  (yPos + stride * height):" + (yPos + stride * frameHeight));
 
     i420ByteBuffer.position(yPos);
     i420ByteBuffer.limit(yPos + stride * frameHeight);
@@ -228,16 +228,16 @@ public class YuvConverter {
     final int uvSize = stride * (uvHeight - 1) + stride / 2;
     i420ByteBuffer.limit(uPos + uvSize);
     final ByteBuffer dataU = i420ByteBuffer.slice();
-    Logging.d(TAG, "uPos:" + uPos + "  (uPos + uvSize):" + (uPos + uvSize));
+//    Logging.d(TAG, "uPos:" + uPos + "  (uPos + uvSize):" + (uPos + uvSize));
 
     i420ByteBuffer.position(vPos);
     i420ByteBuffer.limit(vPos + uvSize);
     final ByteBuffer dataV = i420ByteBuffer.slice();
-    Logging.d(TAG, "vPos:" + vPos + " (vPos + uvSize):" + (vPos + uvSize));
-    Logging.d(TAG, "dataY:" + dataY + " length: " + dataY.array().length +
-            " dataU:" + dataU + " length: " + dataU.array().length +
-            " dataV:" + dataV + " length: " + dataV.array().length +
-            " size: " + (stride * totalHeight) + " " + i420ByteBuffer.array().length);
+//    Logging.d(TAG, "vPos:" + vPos + " (vPos + uvSize):" + (vPos + uvSize));
+//    Logging.d(TAG, "dataY:" + dataY + " length: " + dataY.array().length +
+//            " dataU:" + dataU + " length: " + dataU.array().length +
+//            " dataV:" + dataV + " length: " + dataV.array().length +
+//            " size: " + (stride * totalHeight) + " " + i420ByteBuffer.array().length);
 
 
     return JavaI420Buffer.wrap(frameWidth, frameHeight, dataY, stride, dataU, stride, dataV, stride);
